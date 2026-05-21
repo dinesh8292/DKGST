@@ -1,0 +1,151 @@
+@page "/dashboard"
+@using DKGST.Blazor.Services
+@using DKGST.Core.Models
+@inject MenuService MenuService
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-2 d-md-block bg-light sidebar">
+            <div class="position-sticky pt-3">
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>Menu</span>
+                </h6>
+                <ul class="nav flex-column">
+                    @if (Menus != null)
+                    {
+                        @foreach (var menu in Menus)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" href="@menu.Route">
+                                    <i class="@menu.Icon"></i>
+                                    @menu.Title
+                                </a>
+                            </li>
+                        }
+                    }
+                </ul>
+
+                <hr />
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/settings">
+                            <i class="bi bi-gear"></i>
+                            Settings
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" @onclick="Logout" href="#">
+                            <i class="bi bi-box-arrow-right"></i>
+                            Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="col-md-10 ms-sm-auto px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">Dashboard</h1>
+                <div>
+                    <span class="badge bg-primary">@CurrentCompanyName</span>
+                    <button class="btn btn-sm btn-outline-secondary ms-2" @onclick="ChangeCompany">Change Company</button>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Invoices</h5>
+                            <p class="card-text display-4">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Products</h5>
+                            <p class="card-text display-4">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Stock Value</h5>
+                            <p class="card-text display-4">$0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Pending</h5>
+                            <p class="card-text display-4">0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<style>
+    .sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 100;
+        padding-top: 48px;
+        box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+    }
+</style>
+
+@code {
+    private List<Menu> Menus = new();
+    private string CurrentCompanyName = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await AuthService.GetCurrentUserAsync();
+        if (user == null)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var companyId = await AuthService.GetCurrentCompanyIdAsync();
+        if (companyId == Guid.Empty)
+        {
+            Navigation.NavigateTo("/companies");
+            return;
+        }
+
+        try
+        {
+            Menus = await MenuService.GetMenusAsync(companyId);
+            var company = await AuthService.GetCurrentCompanyAsync();
+            CurrentCompanyName = company?.Name ?? "Company";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading menus: {ex.Message}");
+        }
+    }
+
+    private void ChangeCompany()
+    {
+        Navigation.NavigateTo("/companies");
+    }
+
+    private async Task Logout()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/login");
+    }
+}

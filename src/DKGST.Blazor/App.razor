@@ -1,0 +1,18 @@
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.WebAssembly.Routing
+
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>Not found</PageTitle>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <div class="alert alert-danger" role="alert">
+                <h4 class="alert-heading">Sorry, there's nothing at this address.</h4>
+                <p>If you think this is a mistake, <a href="/">click here to go home</a>.</p>
+            </div>
+        </LayoutView>
+    </NotFound>
+</Router>
