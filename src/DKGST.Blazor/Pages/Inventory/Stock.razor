@@ -1,0 +1,88 @@
+@page "/inventory/stock"
+@using DKGST.Blazor.Services
+@using DKGST.Core.Models.Inventory
+@inject HttpClient HttpClient
+@inject NavigationManager Navigation
+
+<div class="container-fluid mt-4">
+    <h2>Stock Management</h2>
+    <p class="text-muted">Track and manage inventory stock levels</p>
+
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <a class="nav-link active" @onclick="() => ActiveTab = 'current'" href="#">Current Stock</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" @onclick="() => ActiveTab = 'transfers'" href="#">Transfers</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" @onclick="() => ActiveTab = 'adjustments'" href="#">Adjustments</a>
+        </li>
+    </ul>
+
+    @if (ActiveTab == "current")
+    {
+        <div class="table-responsive">
+            <table class="table">
+                <thead class="table-light">
+                    <tr>
+                        <th>Product</th>
+                        <th>Location</th>
+                        <th>On Hand</th>
+                        <th>Reserved</th>
+                        <th>Available</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Stocks != null)
+                    {
+                        @foreach (var stock in Stocks)
+                        {
+                            <tr>
+                                <td>@stock.Product?.ProductName</td>
+                                <td>@stock.WarehouseLocation</td>
+                                <td>@stock.QuantityOnHand</td>
+                                <td>@stock.QuantityReserved</td>
+                                <td><strong>@stock.QuantityAvailable</strong></td>
+                                <td>
+                                    @if (stock.QuantityOnHand <= 20)
+                                    {
+                                        <span class="badge bg-danger">Low</span>
+                                    }
+                                    else if (stock.QuantityOnHand <= 50)
+                                    {
+                                        <span class="badge bg-warning">Medium</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">Good</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Stock> Stocks = new();
+    private string ActiveTab = "current";
+    private bool IsLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Load stocks from API
+            IsLoading = false;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading stocks: {ex.Message}");
+        }
+    }
+}

@@ -1,5 +1,7 @@
 using DKGST.Infrastructure;
 using DKGST.Infrastructure.Data;
+using DKGST.Infrastructure.Extensions;
+using DKGST.Infrastructure.Seeders;
 using DKGST.Core.Services;
 using DKGST.Core.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -26,15 +28,21 @@ builder.Services.AddCors(options =>
 });
 
 var masterConnectionString = builder.Configuration.GetConnectionString("MasterDb");
+var companyConnectionString = builder.Configuration.GetConnectionString("CompanyDb");
+
 if (databaseProvider == "SqlServer")
 {
     builder.Services.AddDbContext<MasterDbContext>(options =>
         options.UseSqlServer(masterConnectionString));
+    builder.Services.AddDbContext<CompanyDbContext>(options =>
+        options.UseSqlServer(companyConnectionString));
 }
 else
 {
     builder.Services.AddDbContext<MasterDbContext>(options =>
         options.UseNpgsql(masterConnectionString));
+    builder.Services.AddDbContext<CompanyDbContext>(options =>
+        options.UseNpgsql(companyConnectionString));
 }
 
 var secret = jwtSettings["Secret"];
@@ -58,12 +66,17 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// Register Core Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICompanyService, CompanyService>();
 builder.Services.AddScoped<IMenuService, MenuService>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ILanguageService, LanguageService>();
+
+// Register Module Services
+builder.Services.AddAccountingServices();
+builder.Services.AddInventoryServices();
 
 builder.Services.AddLocalization();
 var supportedCultures = new[] { "en", "es", "hi" };
@@ -110,10 +123,25 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseRequestLocalization();
 
+// Apply Migrations and Seed Data
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<MasterDbContext>();
-    dbContext.Database.Migrate();
+    var masterDbContext = scope.ServiceProvider.GetRequiredService<MasterDbContext>();
+    var companyDbContext = scope.ServiceProvider.GetRequiredService<CompanyDbContext>();
+
+    // Apply migrations
+    await masterDbContext.Database.MigrateAsync();
+    await companyDbContext.Database.MigrateAsync();
+
+    // Seed master data
+    await DatabaseSeeder.SeedMasterDataAsync(masterDbContext);
+
+    // Seed company data (for all existing companies)
+    var companies = await masterDbContext.Companies.ToListAsync();
+    foreach (var company in companies)
+    {
+        await DatabaseSeeder.SeedCompanyDataAsync(companyDbContext, company.Id);
+    }
 }
 
 app.MapControllers();

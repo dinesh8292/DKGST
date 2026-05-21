@@ -1,0 +1,113 @@
+@page "/inventory/products"
+@using DKGST.Blazor.Services
+@using DKGST.Core.Models.Inventory
+@inject HttpClient HttpClient
+@inject NavigationManager Navigation
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>Products</h2>
+            <p class="text-muted">Manage your product inventory</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <button class="btn btn-primary" @onclick="CreateProduct">
+                <i class="bi bi-plus-circle"></i> New Product
+            </button>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <input type="text" class="form-control" placeholder="Search products..." @oninput="@((ChangeEventArgs e) => SearchProducts(e.Value?.ToString() ?? ""))" />
+        </div>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (Products == null || !Products.Any())
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> No products found
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var product in Products)
+            {
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">@product.ProductName</h5>
+                            <p class="card-text">
+                                <small class="text-muted">@product.ProductCode</small><br>
+                                <strong>₹@product.SellingPrice.ToString("0.00")</strong><br>
+                                <span class="badge bg-info">@product.Category</span>
+                            </p>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <div class="btn-group btn-group-sm w-100">
+                                <button class="btn btn-outline-primary" @onclick="() => ViewProduct(product.Id)">View</button>
+                                <button class="btn btn-outline-secondary" @onclick="() => EditProduct(product.Id)">Edit</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<Product> Products = new();
+    private List<Product> AllProducts = new();
+    private bool IsLoading = true;
+    private IJSRuntime JSRuntime { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Load products from API
+            IsLoading = false;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading products: {ex.Message}");
+        }
+    }
+
+    private void CreateProduct()
+    {
+        Navigation.NavigateTo("/inventory/products/new");
+    }
+
+    private void ViewProduct(Guid productId)
+    {
+        Navigation.NavigateTo($"/inventory/products/{productId}");
+    }
+
+    private void EditProduct(Guid productId)
+    {
+        Navigation.NavigateTo($"/inventory/products/{productId}/edit");
+    }
+
+    private void SearchProducts(string searchTerm)
+    {
+        if (string.IsNullOrEmpty(searchTerm))
+        {
+            Products = AllProducts;
+        }
+        else
+        {
+            Products = AllProducts.Where(p => p.ProductName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+    }
+}

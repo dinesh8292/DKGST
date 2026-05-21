@@ -1,0 +1,129 @@
+@page "/accounting/invoices"
+@using DKGST.Blazor.Services
+@using DKGST.Core.Models.Accounting
+@inject MenuService MenuService
+@inject HttpClient HttpClient
+@inject NavigationManager Navigation
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>Invoices</h2>
+            <p class="text-muted">Manage your company invoices</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <button class="btn btn-primary" @onclick="CreateInvoice">
+                <i class="bi bi-plus-circle"></i> New Invoice
+            </button>
+        </div>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (Invoices == null || !Invoices.Any())
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> No invoices found
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Invoice Number</th>
+                        <th>Customer</th>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var invoice in Invoices)
+                    {
+                        <tr>
+                            <td><strong>@invoice.InvoiceNumber</strong></td>
+                            <td>@invoice.CustomerName</td>
+                            <td>@invoice.InvoiceDate.ToString("dd/MM/yyyy")</td>
+                            <td>₹@invoice.TotalAmount.ToString("0.00")</td>
+                            <td>
+                                @if (invoice.Status == "Draft")
+                                {
+                                    <span class="badge bg-secondary">Draft</span>
+                                }
+                                else if (invoice.Status == "Submitted")
+                                {
+                                    <span class="badge bg-warning">Submitted</span>
+                                }
+                                else if (invoice.Status == "Paid")
+                                {
+                                    <span class="badge bg-success">Paid</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">@invoice.Status</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" @onclick="() => ViewInvoice(invoice.Id)">View</button>
+                                    <button class="btn btn-outline-secondary" @onclick="() => EditInvoice(invoice.Id)">Edit</button>
+                                    <button class="btn btn-outline-danger" @onclick="() => DeleteInvoice(invoice.Id)">Delete</button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Invoice> Invoices = new();
+    private bool IsLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Load invoices from API
+            IsLoading = false;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading invoices: {ex.Message}");
+        }
+    }
+
+    private void CreateInvoice()
+    {
+        Navigation.NavigateTo("/accounting/invoices/new");
+    }
+
+    private void ViewInvoice(Guid invoiceId)
+    {
+        Navigation.NavigateTo($"/accounting/invoices/{invoiceId}");
+    }
+
+    private void EditInvoice(Guid invoiceId)
+    {
+        Navigation.NavigateTo($"/accounting/invoices/{invoiceId}/edit");
+    }
+
+    private async Task DeleteInvoice(Guid invoiceId)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure?"))
+        {
+            // Delete invoice
+        }
+    }
+}
